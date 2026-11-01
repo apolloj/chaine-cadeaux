@@ -1,0 +1,10 @@
+# Secrets locaux
+config.ini
+config_test.ini
+mysql_root_password.txt
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
