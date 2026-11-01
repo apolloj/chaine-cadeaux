@@ -8,7 +8,7 @@ ce qui permet de les consulter, de les corriger et d'éviter les répétitions.
 ## Règles du tirage
 
 - **Une seule boucle** qui passe par tous les participants de l'année.
-- **Règle des 3 ans** : si A a offert à B, alors pendant les 3 années suivantes A ne peut plus
+- **Règle des 10 ans** : si A a offert à B, alors pendant les 10 années suivantes A ne peut plus
   offrir à B **et** B ne peut pas offrir à A. La durée se règle dans `config.ini`
   (`fenetre_annees`). Si on refait le tirage d'une année passée, les années suivantes comptent aussi.
 - **Couples et foyers** : des personnes déclarées comme exclues ne se tirent jamais l'une l'autre.
