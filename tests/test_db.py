@@ -60,6 +60,26 @@ def test_tirage_invalide_refuse_et_annule(base):
     assert base.annees() == []  # transaction annulée
 
 
+def test_archives(base):
+    for nom in ("Alice", "Bruno"):
+        base.ajouter_personne(nom)
+    base.archiver_personne("Bruno", 2026)
+    assert base.archives() == {"Bruno": 2026}
+    base.archiver_personne("Bruno", None)
+    assert base.archives() == {}
+
+
+def test_mise_a_jour_d_une_ancienne_base(base):
+    from cadeaux.init_db import mettre_a_jour_schema
+
+    base._ecrire(("ALTER TABLE personnes DROP COLUMN archive_depuis", ()))
+    base.ajouter_personne("Alice")
+    mettre_a_jour_schema(base.cnx)
+    mettre_a_jour_schema(base.cnx)  # relançable sans erreur
+    base.archiver_personne("Alice", 2030)
+    assert base.archives() == {"Alice": 2030}
+
+
 def test_exclusions(base):
     for nom in ("Alice", "Bruno", "Chloé"):
         base.ajouter_personne(nom)

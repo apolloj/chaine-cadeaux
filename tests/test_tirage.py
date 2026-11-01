@@ -87,6 +87,21 @@ def test_deux_personnes():
     assert tirage.chaine_vers_attributions(res.chaine) == {"A": "B", "B": "A"}
 
 
+def test_separer_archives():
+    archives = {"B": 2026, "C": 2028}
+    assert tirage.separer_archives(["A", "B", "C"], archives, 2026) == (["A", "C"], ["B"])
+    assert tirage.separer_archives(["A", "B", "C"], archives, 2030) == (["A"], ["B", "C"])
+    assert tirage.separer_archives(["A", "B"], archives, 2025) == (["A", "B"], [])  # années passées
+
+
+def test_retirer_referme_la_boucle():
+    attributions = {"A": "B", "B": "C", "C": "D", "D": "A"}
+    assert tirage.retirer(attributions, "C") == {"A": "B", "B": "D", "D": "A"}
+    assert len(tirage.cycles(tirage.retirer(attributions, "A"))) == 1
+    with pytest.raises(ValueError):
+        tirage.retirer({"A": "B", "B": "A"}, "A")
+
+
 def test_cycles_et_renommer():
     attributions = {"A": "B", "B": "C", "C": "A"}
     assert tirage.cycles(attributions) == [["A", "B", "C"]]

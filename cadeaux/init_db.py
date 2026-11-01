@@ -14,6 +14,11 @@ from . import config
 
 FICHIER_MDP_ROOT = config.RACINE / "mysql_root_password.txt"
 
+# Colonnes ajoutées après la première version, pour mettre à jour une base existante.
+MIGRATIONS = [
+    ("personnes", "archive_depuis", "SMALLINT UNSIGNED NULL AFTER nom"),
+]
+
 
 def _connexion_root(host: str, port: int):
     """Connexion root : mot de passe pris dans MYSQL_ROOT_PASSWORD, puis dans
@@ -44,7 +49,9 @@ def _connexion_root(host: str, port: int):
     return mysql.connector.connect(host=host, port=port, user="root", password=mdp)
 
 
-def _executer_schema(cnx) -> None:
+def mettre_a_jour_schema(cnx) -> None:
+    """Crée les tables manquantes et ajoute les colonnes apparues depuis.
+    Sans effet si la base est déjà à jour."""
     sql = resources.files("cadeaux").joinpath("schema.sql").read_text(encoding="utf-8")
     # Les commentaires sont retirés d'abord : ils peuvent contenir des « ; ».
     sans_commentaires = "\n".join(l for l in sql.splitlines() if not l.strip().startswith("--"))
@@ -52,6 +59,14 @@ def _executer_schema(cnx) -> None:
     for requete in sans_commentaires.split(";"):
         if requete.strip():
             cur.execute(requete)
+    cur.execute(
+        "SELECT LOWER(TABLE_NAME), LOWER(COLUMN_NAME) FROM information_schema.COLUMNS "
+        "WHERE TABLE_SCHEMA = DATABASE()"
+    )
+    existantes = set(cur.fetchall())
+    for table, colonne, definition in MIGRATIONS:
+        if (table, colonne) not in existantes:
+            cur.execute(f"ALTER TABLE {table} ADD COLUMN {colonne} {definition}")
     cur.close()
 
 
@@ -87,7 +102,7 @@ def initialiser() -> int:
 
     cnx = mysql.connector.connect(**parametres)
     try:
-        _executer_schema(cnx)
+        mettre_a_jour_schema(cnx)
     finally:
         cnx.close()
     print(f"Base « {base} » prête.")

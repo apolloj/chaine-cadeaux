@@ -4,6 +4,8 @@
 CREATE TABLE IF NOT EXISTS personnes (
     id       INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     nom      VARCHAR(100) NOT NULL,
+    -- Année à partir de laquelle la personne ne participe plus aux tirages (NULL = active).
+    archive_depuis  SMALLINT UNSIGNED NULL,
     cree_le  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     -- La collation ignore accents et majuscules : « Elise » et « élise » sont la même personne.
     UNIQUE KEY uq_personnes_nom (nom)

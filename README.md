@@ -77,7 +77,8 @@ python -m cadeaux
 3. **Faites le tirage de l'année** (option 1) en donnant la liste des participants :
    - noms séparés par des virgules : `Alice, Bruno, Chloé, David, Emma` ;
    - ou le chemin d'un fichier texte avec un nom par ligne ;
-   - ou rien du tout pour reprendre les participants de l'année précédente.
+   - ou rien du tout pour reprendre les participants de l'année précédente (ou, si l'on refait
+     une année, ceux du tirage remplacé). La liste reprise est affichée avant le tirage.
 
 Les nouveaux noms sont ajoutés à la base après confirmation. Les accents et majuscules sont
 ignorés à la comparaison (« elise » = « Élise »), et les fautes de frappe proches d'un nom
@@ -88,10 +89,24 @@ connu sont signalées.
 L'option 5 permet :
 - d'**échanger la place de deux personnes** dans la chaîne (la boucle reste unique) ;
 - de **remplacer une personne** par une autre (ex. un absent remplacé au dernier moment) ;
+- de **retirer une personne** : celui qui lui offrait offre alors à celle qu'elle gâtait,
+  la boucle reste unique ;
 - de **tout ressaisir**.
 
 Avant d'enregistrer, le programme signale les entorses aux règles (plusieurs boucles,
-paire déjà tirée récemment, couple qui se tire).
+paire déjà tirée récemment, couple qui se tire, personne archivée).
+
+### Personnes parties : l'archive
+
+Quand quelqu'un ne participe plus, archivez-le plutôt que de le supprimer (menu
+**8. Personnes** → **Archiver**), en indiquant l'année à partir de laquelle il ne participe plus :
+
+- ses tirages passés restent dans l'historique ;
+- il est retiré automatiquement des tirages de cette année et des suivantes, même si son nom
+  est tapé dans la liste ;
+- s'il figure déjà dans un tirage de ces années, le programme propose de l'en retirer.
+
+**Réactiver** le remet dans les tirages.
 
 ## Base de données
 
@@ -99,10 +114,13 @@ Base `chaine_cadeaux` (voir [`cadeaux/schema.sql`](cadeaux/schema.sql)) :
 
 | Table          | Contenu                                                              |
 |----------------|----------------------------------------------------------------------|
-| `personnes`    | Membres de la famille (nom unique, sans tenir compte des accents)    |
+| `personnes`    | Membres de la famille (nom unique sans tenir compte des accents, année d'archivage) |
 | `exclusions`   | Paires qui ne se tirent jamais (couples, foyers)                     |
 | `tirages`      | Une ligne par année, avec une note (tirage automatique, saisie…)     |
 | `attributions` | Qui offre à qui, par année (un don et une réception par personne)    |
+
+Après une mise à jour du programme, la base est mise à jour automatiquement au lancement
+(tables et colonnes manquantes ajoutées, données conservées).
 
 La vue `vue_attributions` affiche les tirages avec les noms, pratique dans MySQL Workbench :
 

@@ -8,7 +8,7 @@ from pathlib import Path
 
 import mysql.connector
 
-from . import config, noms, tirage
+from . import config, init_db, noms, tirage
 from .db import Base
 
 # --- Saisie --------------------------------------------------------------------
@@ -25,8 +25,8 @@ def confirmer(question: str, defaut: bool = False) -> bool:
     return defaut if not reponse else reponse in ("o", "oui", "y", "yes")
 
 
-def demander_annee(defaut: int | None = None) -> int | None:
-    reponse = demander("Année", defaut)
+def demander_annee(defaut: int | None = None, question: str = "Année") -> int | None:
+    reponse = demander(question, defaut)
     if reponse.isdigit() and 1900 <= int(reponse) <= 2999:
         return int(reponse)
     print("Année invalide.")
@@ -75,14 +75,17 @@ def nom_participant(attributions: dict[str, str], question: str) -> str | None:
 
 
 def lire_participants(base: Base, annee: int) -> list[str] | None:
-    precedente = max((a for a in base.annees() if a < annee), default=None)
+    annees = base.annees()
+    # Pour refaire une année, on reprend ses propres participants, pas ceux d'une année plus ancienne.
+    reference = annee if annee in annees else max((a for a in annees if a < annee), default=None)
     print("Participants : noms séparés par des virgules, ou chemin d'un fichier texte (un nom par ligne).")
-    if precedente is not None:
-        print(f"Laissez vide pour reprendre les participants de {precedente}.")
+    if reference is not None:
+        print(f"Laissez vide pour reprendre les participants du tirage {reference}.")
     reponse = input("> ").strip()
     fichier = Path(reponse.strip('"'))
-    if not reponse and precedente is not None:
-        saisis = list(base.attributions(precedente))
+    if not reponse and reference is not None:
+        saisis = sorted(base.attributions(reference), key=noms.cle)
+        print(f"Participants repris de {reference} ({len(saisis)}) : " + ", ".join(saisis))
     elif reponse and fichier.is_file():
         saisis = noms.lire_liste(fichier.read_text(encoding="utf-8-sig"))
     else:
@@ -95,6 +98,10 @@ def lire_participants(base: Base, annee: int) -> list[str] | None:
     if doublons:
         print("Noms en double : " + ", ".join(doublons))
         return None
+    archives = base.archives()
+    participants, retires = tirage.separer_archives(participants, archives, annee)
+    for nom in retires:
+        print(f"{nom} est archivé(e) depuis {archives[nom]} : retiré(e) du tirage.")
     if len(participants) < 2:
         print("Il faut au moins 2 participants.")
         return None
@@ -129,6 +136,9 @@ def signaler_problemes(base: Base, cfg: config.Config, annee: int, attributions:
     interdits = tirage.paires_interdites(base.historique(), annee, cfg.fenetre, exclusions_de(base))
     for donneur, receveur, raison in tirage.violations(attributions, interdits):
         print(f"Attention : {donneur} → {receveur} ({raison})")
+    archives = base.archives()
+    for nom in tirage.separer_archives(sorted(attributions, key=noms.cle), archives, annee)[1]:
+        print(f"Attention : {nom} est archivé(e) depuis {archives[nom]}")
 
 
 # --- Actions du menu -----------------------------------------------------------
@@ -253,6 +263,24 @@ def saisir_tirage(base: Base, cfg: config.Config, annee: int | None = None) -> N
         print(f"Tirage {annee} enregistré.")
 
 
+def proposer_modification(base: Base, cfg: config.Config, annee: int, nouveau: dict[str, str], note: str) -> None:
+    print(f"\nNouveau tirage {annee} :")
+    afficher(nouveau)
+    signaler_problemes(base, cfg, annee, nouveau)
+    if confirmer("Enregistrer la modification ?", True):
+        base.enregistrer_tirage(annee, nouveau, note)
+        print("Modification enregistrée.")
+
+
+def retirer_du_tirage(base: Base, cfg: config.Config, annee: int, nom: str) -> None:
+    try:
+        nouveau = tirage.retirer(base.attributions(annee), nom)
+    except ValueError as erreur:
+        print(erreur)
+        return
+    proposer_modification(base, cfg, annee, nouveau, f"modifié manuellement ({nom} retiré(e))")
+
+
 def modifier_tirage(base: Base, cfg: config.Config) -> None:
     annee = choisir_annee_existante(base)
     if annee is None:
@@ -262,7 +290,8 @@ def modifier_tirage(base: Base, cfg: config.Config) -> None:
     afficher(attributions)
     print("\n1. Échanger la place de deux personnes dans la chaîne")
     print("2. Remplacer une personne par une autre")
-    print("3. Tout ressaisir")
+    print("3. Retirer une personne (celui qui lui offrait offre alors à celle qu'elle gâtait)")
+    print("4. Tout ressaisir")
     print("0. Retour")
     choix = input("Votre choix : ").strip()
 
@@ -285,17 +314,16 @@ def modifier_tirage(base: Base, cfg: config.Config) -> None:
             return
         nouveau = tirage.renommer(attributions, {ancien: resolus[0]})
     elif choix == "3":
+        nom = nom_participant(attributions, "Personne à retirer")
+        if nom is not None:
+            retirer_du_tirage(base, cfg, annee, nom)
+        return
+    elif choix == "4":
         saisir_tirage(base, cfg, annee)
         return
     else:
         return
-
-    print("\nNouveau tirage :")
-    afficher(nouveau)
-    signaler_problemes(base, cfg, annee, nouveau)
-    if confirmer("Enregistrer la modification ?", True):
-        base.enregistrer_tirage(annee, nouveau, "modifié manuellement")
-        print("Modification enregistrée.")
+    proposer_modification(base, cfg, annee, nouveau, "modifié manuellement")
 
 
 def supprimer_tirage(base: Base, cfg: config.Config) -> None:
@@ -351,17 +379,21 @@ def gerer_exclusions(base: Base, cfg: config.Config) -> None:
 def gerer_personnes(base: Base, cfg: config.Config) -> None:
     while True:
         participations = base.participations()
+        archives = base.archives()
         print("\nPersonnes enregistrées :")
         if not participations:
             print("  (aucune)")
         largeur = max(map(len, participations), default=0)
         for nom, annees in participations.items():
-            print(f"  {nom:<{largeur}}  " + (", ".join(map(str, annees)) or "aucun tirage"))
+            statut = f"  [archivé(e) depuis {archives[nom]}]" if nom in archives else ""
+            print(f"  {nom:<{largeur}}  " + (", ".join(map(str, annees)) or "aucun tirage") + statut)
         print("\n1. Renommer une personne")
-        print("2. Supprimer une personne")
+        print("2. Archiver une personne (elle ne participe plus aux tirages)")
+        print("3. Réactiver une personne archivée")
+        print("4. Supprimer une personne")
         print("0. Retour")
         choix = input("Votre choix : ").strip()
-        if choix not in ("1", "2"):
+        if choix not in ("1", "2", "3", "4"):
             return
 
         connus = {noms.cle(n): n for n in participations}
@@ -378,6 +410,24 @@ def gerer_personnes(base: Base, cfg: config.Config) -> None:
                 continue
             base.renommer_personne(nom, nouveau)
             print(f"{nom} s'appelle désormais {nouveau}.")
+        elif choix == "2":
+            depuis = demander_annee(date.today().year, "Ne participe plus à partir de l'année")
+            if depuis is None:
+                continue
+            base.archiver_personne(nom, depuis)
+            print(f"{nom} est archivé(e) : plus de tirage pour {nom} à partir de {depuis}.")
+            deja_tire = [a for a in participations[nom] if a >= depuis]
+            if deja_tire and confirmer(
+                f"{nom} figure déjà dans le tirage {', '.join(map(str, deja_tire))}. L'en retirer ?", True
+            ):
+                for annee in deja_tire:
+                    retirer_du_tirage(base, cfg, annee, nom)
+        elif choix == "3":
+            if nom not in archives:
+                print(f"{nom} n'est pas archivé(e).")
+                continue
+            base.archiver_personne(nom, None)
+            print(f"{nom} participe de nouveau aux tirages.")
         elif participations[nom]:
             print(f"{nom} figure dans les tirages {', '.join(map(str, participations[nom]))} : "
                   "modifiez ou supprimez d'abord ces tirages.")
@@ -420,8 +470,9 @@ def main() -> int:
         return 1
     try:
         base = Base(cfg.mysql)
+        init_db.mettre_a_jour_schema(base.cnx)
     except mysql.connector.Error as erreur:
-        print(f"Connexion à MySQL impossible : {erreur}")
+        print(f"Base MySQL inaccessible : {erreur}")
         return 1
 
     with base:

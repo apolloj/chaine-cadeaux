@@ -126,6 +126,14 @@ def tirer(
     return None
 
 
+def separer_archives(
+    participants: Sequence[Hashable], archives: Mapping[Hashable, int], annee: int
+) -> tuple[list, list]:
+    """Sépare les participants actifs en `annee` de ceux archivés depuis cette année ou avant."""
+    retires = [p for p in participants if p in archives and archives[p] <= annee]
+    return [p for p in participants if p not in retires], retires
+
+
 def chaine_vers_attributions(chaine: Sequence[Hashable]) -> dict:
     """[A, B, C] → {A: B, B: C, C: A}"""
     return {p: chaine[(i + 1) % len(chaine)] for i, p in enumerate(chaine)}
@@ -153,6 +161,18 @@ def renommer(attributions: Mapping, correspondance: Mapping) -> dict:
         return correspondance.get(p, p)
 
     return {f(d): f(r) for d, r in attributions.items()}
+
+
+def retirer(attributions: Mapping, personne: Hashable) -> dict:
+    """Retire une personne d'un tirage : celui qui lui offrait offre désormais
+    à celle qu'elle gâtait, et la boucle reste unique."""
+    receveur = attributions[personne]
+    donneur = next(d for d, r in attributions.items() if r == personne)
+    if donneur == receveur:
+        raise ValueError(f"Impossible de retirer {personne} : {donneur} devrait s'offrir un cadeau.")
+    nouveau = {d: r for d, r in attributions.items() if d != personne}
+    nouveau[donneur] = receveur
+    return nouveau
 
 
 def erreurs_structure(paires: Sequence[Paire]) -> list[str]:

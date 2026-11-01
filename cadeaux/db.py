@@ -79,6 +79,16 @@ class Base:
     def supprimer_personne(self, nom: str) -> None:
         self._ecrire(("DELETE FROM personnes WHERE nom = %s", (nom,)))
 
+    def archives(self) -> dict[str, int]:
+        """Personnes archivées, avec l'année à partir de laquelle elles ne participent plus."""
+        return dict(self._lire(
+            "SELECT nom, archive_depuis FROM personnes WHERE archive_depuis IS NOT NULL ORDER BY nom"
+        ))
+
+    def archiver_personne(self, nom: str, depuis: int | None) -> None:
+        """Archive une personne à partir de l'année `depuis` ; None la réactive."""
+        self._ecrire(("UPDATE personnes SET archive_depuis = %s WHERE nom = %s", (depuis, nom)))
+
     # --- Exclusions permanentes ---------------------------------------------
 
     def exclusions(self) -> list[tuple[str, str, str | None]]:
