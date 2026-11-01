@@ -111,7 +111,8 @@ def tirer(
     exclusions: Iterable[Paire] = (),
     rng: random.Random | None = None,
 ) -> Resultat | None:
-    """Tire une chaîne en respectant la règle des `fenetre` ans.
+    """Tire une chaîne en respectant la règle de fenêtre : deux personnes
+    ne se retirent pas pendant `fenetre` ans (fenetre_annees dans config.ini).
 
     Si c'est impossible, la fenêtre est réduite d'un an à la fois ; les
     exclusions permanentes, elles, ne sont jamais assouplies.

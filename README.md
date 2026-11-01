@@ -8,17 +8,18 @@ ce qui permet de les consulter, de les corriger et d'éviter les répétitions.
 ## Règles du tirage
 
 - **Une seule boucle** qui passe par tous les participants de l'année.
-- **Règle des 3 ans** : si A a offert à B, alors pendant les 3 années suivantes A ne peut plus
-  offrir à B **et** B ne peut pas offrir à A. La durée se règle dans `config.ini`
-  (`fenetre_annees`). Si on refait le tirage d'une année passée, les années suivantes comptent aussi.
+- **Règle de fenêtre** (`fenetre_annees` dans `config.ini`, 3 par défaut) : si A a offert à B,
+  alors pendant les `fenetre_annees` années suivantes A ne peut plus offrir à B **et** B ne peut
+  pas offrir à A. Si on refait le tirage d'une année passée, les années suivantes comptent aussi.
 - **Couples et foyers** : des personnes déclarées comme exclues ne se tirent jamais l'une l'autre.
-- Si la règle des 3 ans est **impossible** à respecter (famille trop petite), le programme
-  la réduit à 2 ans, puis 1 an, puis l'ignore, et **prévient** avant d'enregistrer.
-  Les couples et foyers ne sont jamais assouplis.
+- Si la règle de fenêtre est **impossible** à respecter (famille trop petite), le programme
+  réduit la fenêtre d'un an à la fois, jusqu'à ignorer l'historique, et **prévient** avant
+  d'enregistrer. Les couples et foyers ne sont jamais assouplis.
 
-> Avec la règle des 3 ans dans les deux sens, chacun peut perdre jusqu'à 6 partenaires
-> possibles (plus son conjoint). À partir d'une dizaine de participants, la règle est presque
-> toujours respectable ; en dessous, l'assouplissement automatique entrera parfois en jeu.
+> Comme la règle vaut dans les deux sens, chacun peut perdre jusqu'à 2 × `fenetre_annees`
+> partenaires possibles (6 avec la valeur par défaut), plus les membres de son foyer. Avec une
+> fenêtre de 3 ans, la règle est presque toujours respectable à partir d'une dizaine de
+> participants ; en dessous, l'assouplissement automatique entrera parfois en jeu.
 
 ## Installation (Windows 11)
 
@@ -66,19 +67,19 @@ python -m cadeaux
 
 ### Premier lancement
 
-1. **Saisissez les tirages des années précédentes** (option 4) pour que la règle des 3 ans
-   s'applique dès cette année. Une ligne par cadeau, ou la chaîne complète :
+1. **Saisissez les tirages des années précédentes** (option 4), au moins les `fenetre_annees`
+   dernières, pour que la règle de fenêtre s'applique dès cette année. Une ligne par cadeau, ou la chaîne complète :
    ```
    Alice > Bruno > Chloé > David > Alice
    ```
    (`->` et `→` fonctionnent aussi ; refermez la boucle en répétant le premier nom).
 2. **Déclarez les couples et foyers** (option 7) : `Alice, Bruno`. Pour un foyer de plus de
    deux personnes, toutes les paires sont exclues.
-3. **Faites le tirage de l'année** (option 1) en donnant la liste des participants :
-   - noms séparés par des virgules : `Alice, Bruno, Chloé, David, Emma` ;
-   - ou le chemin d'un fichier texte avec un nom par ligne ;
-   - ou rien du tout pour reprendre les participants de l'année précédente (ou, si l'on refait
-     une année, ceux du tirage remplacé). La liste reprise est affichée avant le tirage.
+3. **Faites le tirage de l'année** (option 1). Par défaut (liste laissée vide), il réunit
+   **toutes les personnes de la base qui ne sont pas archivées**, et la liste est affichée avant
+   le tirage. Pour une liste différente, donnez :
+   - des noms séparés par des virgules : `Alice, Bruno, Chloé, David, Emma` ;
+   - ou le chemin d'un fichier texte avec un nom par ligne.
 
 Les nouveaux noms sont ajoutés à la base après confirmation. Les accents et majuscules sont
 ignorés à la comparaison (« elise » = « Élise »), et les fautes de frappe proches d'un nom
@@ -102,8 +103,8 @@ Quand quelqu'un ne participe plus, archivez-le plutôt que de le supprimer (menu
 **8. Personnes** → **Archiver**), en indiquant l'année à partir de laquelle il ne participe plus :
 
 - ses tirages passés restent dans l'historique ;
-- il est retiré automatiquement des tirages de cette année et des suivantes, même si son nom
-  est tapé dans la liste ;
+- il ne fait plus partie de la liste par défaut des tirages de cette année et des suivantes,
+  et il en est retiré même si son nom est tapé dans la liste ;
 - s'il figure déjà dans un tirage de ces années, le programme propose de l'en retirer.
 
 **Réactiver** le remet dans les tirages.

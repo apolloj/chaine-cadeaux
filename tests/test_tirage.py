@@ -24,7 +24,7 @@ def test_tirage_forme_une_seule_boucle(graine):
     assert resultat.fenetre == 3
 
 
-def test_regle_des_trois_ans_dans_les_deux_sens():
+def test_regle_de_fenetre_dans_les_deux_sens():
     historique = []
     for annee in (2023, 2024, 2025):
         res = tirage.tirer(FAMILLE, historique, annee, 3, rng=random.Random(annee))

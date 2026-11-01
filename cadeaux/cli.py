@@ -75,18 +75,16 @@ def nom_participant(attributions: dict[str, str], question: str) -> str | None:
 
 
 def lire_participants(base: Base, annee: int) -> list[str] | None:
-    annees = base.annees()
-    # Pour refaire une année, on reprend ses propres participants, pas ceux d'une année plus ancienne.
-    reference = annee if annee in annees else max((a for a in annees if a < annee), default=None)
+    archives = base.archives()
+    actifs = tirage.separer_archives(sorted(base.personnes(), key=noms.cle), archives, annee)[0]
     print("Participants : noms séparés par des virgules, ou chemin d'un fichier texte (un nom par ligne).")
-    if reference is not None:
-        print(f"Laissez vide pour reprendre les participants du tirage {reference}.")
+    print(f"Laissez vide pour prendre toutes les personnes non archivées de la base ({len(actifs)}).")
     reponse = input("> ").strip()
     fichier = Path(reponse.strip('"'))
-    if not reponse and reference is not None:
-        saisis = sorted(base.attributions(reference), key=noms.cle)
-        print(f"Participants repris de {reference} ({len(saisis)}) : " + ", ".join(saisis))
-    elif reponse and fichier.is_file():
+    if not reponse:
+        saisis = actifs
+        print(f"Participants ({len(saisis)}) : " + ", ".join(saisis))
+    elif fichier.is_file():
         saisis = noms.lire_liste(fichier.read_text(encoding="utf-8-sig"))
     else:
         saisis = noms.lire_liste(reponse)
@@ -98,7 +96,6 @@ def lire_participants(base: Base, annee: int) -> list[str] | None:
     if doublons:
         print("Noms en double : " + ", ".join(doublons))
         return None
-    archives = base.archives()
     participants, retires = tirage.separer_archives(participants, archives, annee)
     for nom in retires:
         print(f"{nom} est archivé(e) depuis {archives[nom]} : retiré(e) du tirage.")
@@ -166,9 +163,10 @@ def faire_tirage(base: Base, cfg: config.Config) -> None:
                   "vérifiez les couples et foyers (exclusions permanentes).")
             return
         if resultat.fenetre < cfg.fenetre:
-            print(f"Attention : impossible de respecter la règle des {cfg.fenetre} ans avec ces participants.")
+            print("Attention : impossible de respecter la règle de fenêtre "
+                  f"(fenetre_annees = {cfg.fenetre}) avec ces participants.")
             if resultat.fenetre:
-                print(f"Meilleur tirage trouvé : la règle est respectée sur {pluriel(resultat.fenetre, 'an')}.")
+                print(f"Meilleur tirage trouvé : fenêtre réduite à {pluriel(resultat.fenetre, 'an')}.")
             else:
                 print("Meilleur tirage trouvé : l'historique a dû être ignoré.")
         attributions = tirage.chaine_vers_attributions(resultat.chaine)
@@ -182,7 +180,7 @@ def faire_tirage(base: Base, cfg: config.Config) -> None:
             return
         if choix == "e":
             note = ("tirage automatique, historique ignoré" if resultat.fenetre == 0
-                    else f"tirage automatique, règle des {pluriel(resultat.fenetre, 'an')}")
+                    else f"tirage automatique, fenêtre de {pluriel(resultat.fenetre, 'an')}")
             base.enregistrer_tirage(annee, attributions, note)
             print(f"Tirage {annee} enregistré.")
             return

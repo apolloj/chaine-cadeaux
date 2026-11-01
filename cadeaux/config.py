@@ -17,7 +17,7 @@ class ConfigManquante(Exception):
 @dataclass
 class Config:
     mysql: dict
-    fenetre: int  # nombre d'années pendant lesquelles deux personnes ne se retirent pas
+    fenetre: int  # règle de fenêtre (fenetre_annees) : années pendant lesquelles deux personnes ne se retirent pas
 
 
 def chemin_config() -> Path:
