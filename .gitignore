@@ -3,6 +3,9 @@ config.ini
 config_test.ini
 mysql_root_password.txt
 
+# Notes personnelles (noms de la famille)
+KDO_Family_Rules.txt
+
 # Python
 __pycache__/
 *.pyc

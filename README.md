@@ -9,17 +9,17 @@ ce qui permet de les consulter, de les corriger et d'éviter les répétitions.
 
 - **Une seule boucle** qui passe par tous les participants de l'année.
 - **Règle de fenêtre** (`fenetre_annees` dans `config.ini`, 3 par défaut) : si A a offert à B,
-  alors pendant les `fenetre_annees` années suivantes A ne peut plus offrir à B **et** B ne peut
-  pas offrir à A. Si on refait le tirage d'une année passée, les années suivantes comptent aussi.
+  alors pendant les `fenetre_annees` années suivantes A ne peut plus offrir à B. Si on refait
+  le tirage d'une année passée, les années suivantes comptent aussi.
 - **Couples et foyers** : des personnes déclarées comme exclues ne se tirent jamais l'une l'autre.
 - Si la règle de fenêtre est **impossible** à respecter (famille trop petite), le programme
   réduit la fenêtre d'un an à la fois, jusqu'à ignorer l'historique, et **prévient** avant
   d'enregistrer. Les couples et foyers ne sont jamais assouplis.
 
-> Comme la règle vaut dans les deux sens, chacun peut perdre jusqu'à 2 × `fenetre_annees`
-> partenaires possibles (6 avec la valeur par défaut), plus les membres de son foyer. Avec une
-> fenêtre de 3 ans, la règle est presque toujours respectable à partir d'une dizaine de
-> participants ; en dessous, l'assouplissement automatique entrera parfois en jeu.
+> Chaque année, chacun ne perd qu'un destinataire possible (celui qu'il a gâté) : au plus
+> `fenetre_annees` personnes lui sont interdites, plus les membres de son foyer. La règle reste
+> donc respectable tant que le nombre de participants dépasse nettement ce total ; sinon,
+> l'assouplissement automatique entre en jeu.
 
 ## Installation (Windows 11)
 

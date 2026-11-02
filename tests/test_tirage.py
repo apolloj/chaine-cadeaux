@@ -24,29 +24,29 @@ def test_tirage_forme_une_seule_boucle(graine):
     assert resultat.fenetre == 3
 
 
-def test_regle_de_fenetre_dans_les_deux_sens():
+def test_regle_de_fenetre():
     historique = []
     for annee in (2023, 2024, 2025):
         res = tirage.tirer(FAMILLE, historique, annee, 3, rng=random.Random(annee))
         assert res.fenetre == 3
         historique += [(annee, d, r) for d, r in tirage.chaine_vers_attributions(res.chaine).items()]
 
-    deja_lies = {frozenset((d, r)) for _, d, r in historique}
+    deja_offerts = {(d, r) for _, d, r in historique}
     for graine in range(30):
         res = tirage.tirer(FAMILLE, historique, 2026, 3, rng=random.Random(graine))
         assert res.fenetre == 3
-        for d, r in tirage.chaine_vers_attributions(res.chaine).items():
-            assert frozenset((d, r)) not in deja_lies
+        assert not deja_offerts & set(tirage.chaine_vers_attributions(res.chaine).items())
 
 
 def test_paires_interdites_fenetre():
     historique = [(2022, "A", "B"), (2023, "C", "D"), (2026, "E", "F"), (2027, "G", "H")]
     interdits = tirage.paires_interdites(historique, 2026, 3)
     assert ("A", "B") not in interdits  # 4 ans avant : de nouveau permis
-    assert ("C", "D") in interdits and ("D", "C") in interdits
+    assert ("C", "D") in interdits
+    assert ("D", "C") not in interdits  # le sens inverse reste permis
     assert ("E", "F") not in interdits  # l'année tirée elle-même est ignorée
     assert ("G", "H") in interdits  # une année suivante compte aussi (re-tirage d'une année passée)
-    assert interdits[("D", "C")] == "C a offert à D en 2023"
+    assert interdits[("C", "D")] == "C a offert à D en 2023"
 
 
 def test_exclusions_permanentes_respectees():
@@ -58,22 +58,22 @@ def test_exclusions_permanentes_respectees():
             assert attributions[a] != b and attributions[b] != a
 
 
-def test_cinq_personnes_apres_un_an():
-    # Chacun ne peut plus offrir qu'aux deux personnes non voisines : seule
-    # l'étoile A → C → E → B → D → A reste possible.
-    historique = [(2025, d, r) for d, r in tirage.chaine_vers_attributions(list("ABCDE")).items()]
-    res = tirage.tirer(list("ABCDE"), historique, 2026, 3, rng=random.Random(1))
+def test_le_sens_inverse_reste_permis():
+    # Après A → B → C → A, seule la boucle inverse A → C → B → A reste possible.
+    historique = [(2025, d, r) for d, r in tirage.chaine_vers_attributions(list("ABC")).items()]
+    res = tirage.tirer(list("ABC"), historique, 2026, 3, rng=random.Random(0))
     assert res.fenetre == 3
-    assert not tirage.violations(tirage.chaine_vers_attributions(res.chaine),
-                                 tirage.paires_interdites(historique, 2026, 3))
+    assert tirage.chaine_vers_attributions(res.chaine) == {"A": "C", "C": "B", "B": "A"}
 
 
 def test_assouplissement_quand_impossible():
-    # Avec 4 personnes, après A → B → C → D → A, aucune boucle unique ne respecte la règle.
-    historique = [(2025, d, r) for d, r in tirage.chaine_vers_attributions(list("ABCD")).items()]
-    res = tirage.tirer(list("ABCD"), historique, 2026, 3, rng=random.Random(0))
-    assert res.fenetre == 0
-    assert est_chaine_unique(tirage.chaine_vers_attributions(res.chaine), list("ABCD"))
+    # À 3, les deux seules boucles possibles ont servi en 2024 et 2025 : la règle des 3 ans
+    # est impossible, la fenêtre est réduite à 1 an, ce qui réautorise la boucle de 2024.
+    historique = [(2024, d, r) for d, r in tirage.chaine_vers_attributions(list("ABC")).items()]
+    historique += [(2025, d, r) for d, r in tirage.chaine_vers_attributions(list("ACB")).items()]
+    res = tirage.tirer(list("ABC"), historique, 2026, 3, rng=random.Random(0))
+    assert res.fenetre == 1
+    assert tirage.chaine_vers_attributions(res.chaine) == {"A": "B", "B": "C", "C": "A"}
 
 
 def test_impossible_meme_sans_historique():

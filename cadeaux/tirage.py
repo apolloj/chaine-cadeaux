@@ -35,15 +35,13 @@ def paires_interdites(
     """Paires (donneur, receveur) interdites pour `annee`, avec leur raison.
 
     - Si A a offert à B à `fenetre` ans ou moins de `annee` (avant ou après),
-      A ne peut plus offrir à B, ni B à A.
+      A ne peut plus offrir à B (B peut en revanche offrir à A).
     - Les exclusions permanentes (couples, foyers) valent dans les deux sens.
     """
     raisons: dict[Paire, str] = {}
     for an, donneur, receveur in sorted(historique, key=lambda ligne: ligne[0]):
         if an != annee and abs(an - annee) <= fenetre:
-            raison = f"{donneur} a offert à {receveur} en {an}"
-            raisons[(donneur, receveur)] = raison
-            raisons[(receveur, donneur)] = raison
+            raisons[(donneur, receveur)] = f"{donneur} a offert à {receveur} en {an}"
     for a, b in exclusions:
         raisons[(a, b)] = raisons[(b, a)] = "exclusion permanente"
     return raisons
@@ -111,8 +109,8 @@ def tirer(
     exclusions: Iterable[Paire] = (),
     rng: random.Random | None = None,
 ) -> Resultat | None:
-    """Tire une chaîne en respectant la règle de fenêtre : deux personnes
-    ne se retirent pas pendant `fenetre` ans (fenetre_annees dans config.ini).
+    """Tire une chaîne en respectant la règle de fenêtre : personne ne réoffre
+    à la même personne pendant `fenetre` ans (fenetre_annees dans config.ini).
 
     Si c'est impossible, la fenêtre est réduite d'un an à la fois ; les
     exclusions permanentes, elles, ne sont jamais assouplies.
